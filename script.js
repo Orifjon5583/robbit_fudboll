@@ -20,6 +20,30 @@ let teams = [
 let playerStats = {}; // { "Player Name": { goals: 0 } }
 let suspensions = []; // ["Player Name", ...]
 
+// GOOGLE SHEETS WEBHOOK URL
+// Bu yerga Apps Script'dan olingan manzilingizni qo'yasiz
+const GOOGLE_SHEETS_WEBHOOK_URL = "https://script.google.com/macros/s/AKfycbx2Gs_pnfLxw_qr00R8Krw7vzVLWu-mMpMfZQMMrrlMGbMEjPf4RN5Ipo81KTvmprG1lw/exec"; 
+
+function sendToGoogleSheets(action, payload) {
+    if(!GOOGLE_SHEETS_WEBHOOK_URL) {
+        console.warn("Google Sheets URL kiritilmagan. Ma'lumot saqlanmadi.");
+        return;
+    }
+    
+    fetch(GOOGLE_SHEETS_WEBHOOK_URL, {
+        method: 'POST',
+        mode: 'no-cors', // Muhim: CORS xatoligini oldini olish uchun
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            action: action,
+            data: payload,
+            timestamp: new Date().toLocaleString('uz-UZ')
+        })
+    }).catch(e => console.error("Sheets ga yuborishda xatolik:", e));
+}
+
 // Initialize UI
 document.addEventListener('DOMContentLoaded', () => {
     renderInitialTeams();
@@ -450,6 +474,12 @@ document.getElementById('save-action-btn').addEventListener('click', () => {
         eventText += ` 🟥 Qizil`;
         if(!suspensions.includes(player)) {
             suspensions.push(player);
+            
+            // Sheets ga yuborish
+            sendToGoogleSheets("SUSPENSION", {
+                player: player,
+                team: team.name
+            });
         }
     }
     
@@ -472,6 +502,24 @@ function endMatch() {
     if(confirm("O'yinni yakunlashni xohlaysizmi?")) {
         clearInterval(timerInterval);
         document.getElementById('live-match-modal').style.display = 'none';
+        
+        // Barcha hodisalarni matn sifatida yig'ish
+        const eventsListItems = document.querySelectorAll('#live-events-list li');
+        let eventsText = [];
+        eventsListItems.forEach(li => {
+            if(!li.innerText.includes("Hodisalar hali yo'q")) {
+                eventsText.push(li.innerText);
+            }
+        });
+
+        sendToGoogleSheets("MATCH_END", {
+            team1: currentLiveMatch.team1.name,
+            team2: currentLiveMatch.team2.name,
+            score1: currentLiveMatch.score1,
+            score2: currentLiveMatch.score2,
+            events: eventsText.join(' | ')
+        });
+
         alert(`O'yin yakunlandi! Hisob: ${currentLiveMatch.team1.name} ${currentLiveMatch.score1} - ${currentLiveMatch.score2} ${currentLiveMatch.team2.name}`);
     }
 }
