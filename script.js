@@ -302,12 +302,8 @@ function generateSchedule(groups) {
 }
 
 function createMatchHtml(team1, team2) {
-    // Escaping quotes just in case
-    const t1Json = encodeURIComponent(JSON.stringify(team1));
-    const t2Json = encodeURIComponent(JSON.stringify(team2));
-    
     return `
-    <div class="match" style="cursor: pointer;" onclick="openLiveMatch('${t1Json}', '${t2Json}')" title="O'yinni boshlash">
+    <div class="match" style="cursor: pointer;" onclick="openLiveMatch(${team1.id}, ${team2.id})" title="O'yinni boshlash">
         <span class="match-team">${team1.name}</span>
         <span class="match-vs">vs</span>
         <span class="match-team right">${team2.name}</span>
@@ -322,9 +318,9 @@ let timerInterval = null;
 let secondsElapsed = 0;
 let isTimerRunning = false;
 
-function openLiveMatch(t1Json, t2Json) {
-    const team1 = JSON.parse(decodeURIComponent(t1Json));
-    const team2 = JSON.parse(decodeURIComponent(t2Json));
+function openLiveMatch(t1Id, t2Id) {
+    const team1 = teams.find(t => t.id === t1Id);
+    const team2 = teams.find(t => t.id === t2Id);
     
     currentLiveMatch = {
         team1,
